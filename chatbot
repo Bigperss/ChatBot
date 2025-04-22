@@ -1,0 +1,76 @@
+#!/usr/bin/env python
+import argparse
+import requests
+from src.bot import Bot
+import yaml
+from colorama import Fore, Style, init
+import sys
+
+def is_model_available(model: str):
+    try:
+        response = requests.get("http://localhost:11434/api/tags")
+        response.raise_for_status()
+        models = response.json().get("models", [])
+        model_names = [m["name"] for m in models]
+        return model in model_names
+    except Exception as e:
+        print(f"Error checking models: {e}")
+        return False
+
+def chat(args: argparse.Namespace, config: dict):
+    init(autoreset=True)
+    persona = config["personas"][args.persona] if args.persona != "none" else ""
+    bot = Bot(persona, args.model, config["max_token"])
+    print(Fore.CYAN + Style.BRIGHT + f"\nYour chatbot is ready!")
+    print(Fore.YELLOW + f"Model: {args.model}")
+    print(Fore.MAGENTA + f"Persona: {args.persona}\n")
+    print(Fore.BLUE + "Type your messages below. Use " + Fore.GREEN + "'/bye'" + Fore.BLUE + " to end the chat.\n")
+
+    while True:
+        try:
+            message = input(Fore.GREEN + "You: " + Style.RESET_ALL)
+            if message.strip().lower() == "/bye":
+                print(Fore.CYAN + "Goodbye!")
+                break
+            print(Fore.BLUE + "\nBot: ", end='')
+            for chunk in bot.ask(message):
+                print(Fore.RESET + chunk, end='')
+            print("\n")
+        except KeyboardInterrupt:
+            print(Fore.RED + "\nChat interrupted. Goodbye!")
+            break
+        
+def main():
+    with open("config.yml", "r") as file:
+        config = yaml.safe_load(file)
+
+    parser = argparse.ArgumentParser(description="My chatbot")
+    parser.add_argument('-model', type=str, default=config["model"],
+                        help=f'[MODEL] (default is {config["model"]})')
+    parser.add_argument('-persona', type=str, default=config["default_persona"],
+                        help=f'[PERSONA] (default is {config["default_persona"]})')
+    parser.add_argument('-list', action='store_true', help='List available personas and exit')
+    args = parser.parse_args()
+
+    if args.list:
+        print("Available personas:")
+        for name in config["personas"]:
+            print(f"- {name}")
+        return
+
+    if args.persona not in config["personas"].keys() and args.persona != "none":
+        raise ValueError(f"Persona '{args.persona}' doesn't exist. Use -list to see options.")
+    
+    if "none" in config["personas"]:
+        raise ValueError("The persona name 'none' is reserved. Remove it from 'config.yml'.")
+    if not is_model_available(args.model):
+        raise ValueError(f"Model '{args.model}' is not available in Ollama. Try: `ollama run {args.model}`")
+
+    chat(args, config)
+
+if __name__ == '__main__':
+    try:
+        main()
+    except ValueError as e:
+        print(e)
+        sys.exit(1)
