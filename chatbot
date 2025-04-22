@@ -1,10 +1,15 @@
 #!/usr/bin/env python
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+SRC = ROOT / "src"
+sys.path.insert(0, str(SRC))
+
 import argparse
 import requests
-from src.bot import Bot
 import yaml
-from colorama import Fore, Style, init
-import sys
+import chat
 
 def is_model_available(model: str):
     try:
@@ -16,29 +21,6 @@ def is_model_available(model: str):
     except Exception as e:
         print(f"Error checking models: {e}")
         return False
-
-def chat(args: argparse.Namespace, config: dict):
-    init(autoreset=True)
-    persona = config["personas"][args.persona] if args.persona != "none" else ""
-    bot = Bot(persona, args.model, config["max_token"])
-    print(Fore.CYAN + Style.BRIGHT + f"\nYour chatbot is ready!")
-    print(Fore.YELLOW + f"Model: {args.model}")
-    print(Fore.MAGENTA + f"Persona: {args.persona}\n")
-    print(Fore.BLUE + "Type your messages below. Use " + Fore.GREEN + "'/bye'" + Fore.BLUE + " to end the chat.\n")
-
-    while True:
-        try:
-            message = input(Fore.GREEN + "You: " + Style.RESET_ALL)
-            if message.strip().lower() == "/bye":
-                print(Fore.CYAN + "Goodbye!")
-                break
-            print(Fore.BLUE + "\nBot: ", end='')
-            for chunk in bot.ask(message):
-                print(Fore.RESET + chunk, end='')
-            print("\n")
-        except KeyboardInterrupt:
-            print(Fore.RED + "\nChat interrupted. Goodbye!")
-            break
         
 def main():
     with open("config.yml", "r") as file:
@@ -66,7 +48,7 @@ def main():
     if not is_model_available(args.model):
         raise ValueError(f"Model '{args.model}' is not available in Ollama. Try: `ollama run {args.model}`")
 
-    chat(args, config)
+    chat.chat(args, config)
 
 if __name__ == '__main__':
     try:

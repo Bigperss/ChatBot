@@ -7,7 +7,7 @@ This project is a terminal-based chatbot built in Python that uses locally runni
 ## Features
 
 - **Local model support** via Ollama (`llama3`, `mistral`, `dolphin`, etc.)
-- **Dynamic system personas** (gentle, dev, sarcastic, etc.)
+- **Dynamic personas** with name, tone, and formatting control
 - **Streaming output** (token-by-token like ChatGPT)
 - Fully configurable via `config.yml`
 
@@ -38,21 +38,6 @@ conda activate chatbot
 python chatbot -model llama3 -persona dev
 ```
 
----
-
-## Project Structure
-
-```
-chatbot-cli/
-├── chatbot              # Entry point CLI
-├── config.yml           # Main configuration file
-├── src/
-│   └── bot.py           # Bot logic (streaming, history, token check)
-├── environment.yml      # Conda environment setup
-```
-
----
-
 ## Available Commands
 
 ```bash
@@ -70,10 +55,24 @@ Use `/bye` in the chat to end the session.
 model: llama3.1:latest
 max_token: 1000
 default_persona: none
+
 personas:
-  gentle: You are a kind and supportive assistant...
-  dev: You are a technical assistant...
-  sarcastic: You are a sarcastic assistant...
+  gentle:
+    description: You are a kind and supportive assistant. You explain things clearly and simply, always using a friendly and encouraging tone. Your goal is to make the user feel understood and confident.
+    name: Gabriel
+  dev:
+    description: You are a technical assistant specialized in software development. You provide concise, accurate, and professional answers. You give clear code examples when relevant.
+    format: |
+      Always respond with a JSON object using the following structure:
+      {
+        "reply": "<your answer here>",
+        "explanation": "<a short explanation of the reasoning>",
+        "context": "<optional context if needed>"
+      }
+      Only output valid JSON. Do not add any commentary or formatting outside of the JSON object.
+  sarcastic:
+    description: You are a sarcastic assistant who answers questions with dry wit and irony. You still provide correct information, but with a humorous, sometimes passive-aggressive tone. You make fun of obvious questions but still help.
+    name: Jonathan
 ```
 
 > You can customize or add more personas here!
@@ -81,7 +80,7 @@ personas:
 ## Troubleshooting
 
 - **Model not available?**
-  Run: `ollama run llama3`
+  Run: `ollama run llama3.1`
 
 ---
 
